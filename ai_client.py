@@ -6,10 +6,10 @@ class AIClient:
     def __init__(self, config: dict):
         self.config = config["ai"]
 
-    async def generate(self, system_prompt: str, user_message: str) -> str:
+    async def generate(self, system_prompt: str, user_message: str, timeout: float = 180.0) -> str:
         provider = self.config.get("provider", "ollama")
         if provider == "ollama":
-            return await self._ollama(system_prompt, user_message)
+            return await self._ollama(system_prompt, user_message, timeout)
         elif provider == "anthropic":
             return await self._anthropic(system_prompt, user_message)
         elif provider == "openai":
@@ -17,10 +17,10 @@ class AIClient:
         else:
             raise ValueError(f"Unknown AI provider: {provider}")
 
-    async def _ollama(self, system_prompt: str, user_message: str) -> str:
+    async def _ollama(self, system_prompt: str, user_message: str, timeout: float = 180.0) -> str:
         base_url = self.config.get("ollama_url", "http://localhost:11434").rstrip("/")
         model = self.config.get("model", "qwen2.5:7b")
-        async with httpx.AsyncClient(timeout=180.0) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(
                 f"{base_url}/api/chat",
                 json={
