@@ -70,11 +70,24 @@ class StyleAnalyzer:
 
         ai = AIClient(config)
         prompt = ANALYSIS_PROMPT.format(samples=formatted)
-        style_description = await ai.generate(
+
+        await queue.put({"type": "status", "message": "AI is generating your style profile. This may take several minutes..."})
+
+        full_text = ""
+        char_count = 0
+        last_update = 0
+        async for chunk in ai.stream(
             "You are an expert writing analyst. Be thorough and specific.",
             prompt,
-            timeout=2700.0,  # 45 minutes — large one-time operation on slower hardware
-        )
+            timeout=2700.0,
+        ):
+            full_text += chunk
+            char_count += len(chunk)
+            if char_count - last_update >= 200:
+                last_update = char_count
+                await queue.put({"type": "status", "message": f"Generating style profile... ({char_count:,} characters written)"})
+
+        style_description = full_text.strip()
 
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(style_description=style_description)
 

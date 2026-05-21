@@ -1,5 +1,6 @@
+import json
 import httpx
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 
 class AIClient:
@@ -17,7 +18,7 @@ class AIClient:
         else:
             raise ValueError(f"Unknown AI provider: {provider}")
 
-    async def _ollama(self, system_prompt: str, user_message: str, timeout: float = 180.0) -> str:
+    async def _ollama(self, system_prompt: str, user_message: str, timeout: float = 600.0) -> str:
         base_url = self.config.get("ollama_url", "http://localhost:11434").rstrip("/")
         model = self.config.get("model", "qwen2.5:7b")
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -34,6 +35,43 @@ class AIClient:
             )
             resp.raise_for_status()
             return resp.json()["message"]["content"].strip()
+
+    async def stream(self, system_prompt: str, user_message: str, timeout: float = 600.0) -> AsyncGenerator[str, None]:
+        provider = self.config.get("provider", "ollama")
+        if provider == "ollama":
+            async for chunk in self._ollama_stream(system_prompt, user_message, timeout):
+                yield chunk
+        else:
+            # Cloud providers: no streaming support yet, yield full response at once
+            result = await self.generate(system_prompt, user_message, timeout)
+            yield result
+
+    async def _ollama_stream(self, system_prompt: str, user_message: str, timeout: float) -> AsyncGenerator[str, None]:
+        base_url = self.config.get("ollama_url", "http://localhost:11434").rstrip("/")
+        model = self.config.get("model", "qwen2.5:7b")
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            async with client.stream(
+                "POST",
+                f"{base_url}/api/chat",
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message},
+                    ],
+                    "stream": True,
+                },
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line:
+                        continue
+                    data = json.loads(line)
+                    token = data.get("message", {}).get("content", "")
+                    if token:
+                        yield token
+                    if data.get("done"):
+                        break
 
     async def _anthropic(self, system_prompt: str, user_message: str) -> str:
         api_key = self.config.get("cloud_api_key", "")
