@@ -24,12 +24,6 @@ class EmailProcessor:
 
     async def process(self, queue) -> dict:
         config = self.cfg.get_config()
-        keywords = config.get("keywords", [])
-
-        if not keywords:
-            raise RuntimeError(
-                "No keywords configured. Add at least one keyword in the Dashboard before analyzing."
-            )
 
         style = self.cfg.get_style_profile()
         if not style.get("system_prompt"):
@@ -47,17 +41,14 @@ class EmailProcessor:
             config.get("max_emails_per_run", 20),
         )
 
-        await queue.put({"type": "status", "message": f"Found {len(emails)} recent emails. Filtering by keywords..."})
-
-        matched = [e for e in emails if self._matches(e, keywords)]
-        await queue.put({"type": "status", "message": f"{len(matched)} email(s) match your keywords."})
+        await queue.put({"type": "status", "message": f"Found {len(emails)} emails."})
 
         if config.get("skip_processed", True):
-            new_emails = [e for e in matched if e["message_id"] not in processed_ids]
+            new_emails = [e for e in emails if e["message_id"] not in processed_ids]
         else:
-            new_emails = matched
+            new_emails = emails
 
-        skipped = len(matched) - len(new_emails)
+        skipped = len(emails) - len(new_emails)
         if skipped:
             await queue.put({"type": "status", "message": f"Skipping {skipped} already-processed email(s)."})
 
@@ -127,6 +118,3 @@ class EmailProcessor:
         with IMAPClient(config) as client:
             client.save_draft(original, reply_body)
 
-    def _matches(self, em: Dict, keywords: List[str]) -> bool:
-        haystack = f"{em['subject']} {em['body']}".lower()
-        return any(kw.lower() in haystack for kw in keywords)

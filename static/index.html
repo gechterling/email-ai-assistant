@@ -395,19 +395,6 @@
   <div class="tab active" id="tab-dashboard">
 
     <div class="card">
-      <h2>Keywords</h2>
-      <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">
-        Emails containing any of these words or phrases (in subject or body) will be processed.
-        Leave empty to process all recent emails.
-      </p>
-      <div class="keyword-list" id="keyword-list"></div>
-      <div class="keyword-input-row">
-        <input type="text" id="kw-input" placeholder="Add a keyword or phrase..." onkeydown="if(event.key==='Enter')addKeyword()">
-        <button class="btn secondary" onclick="addKeyword()">Add</button>
-      </div>
-    </div>
-
-    <div class="card">
       <h2>Analyze Emails</h2>
       <div class="info-box" id="readiness-box" style="display:none"></div>
       <button class="btn" id="analyze-btn" onclick="runAnalysis()">
@@ -782,46 +769,6 @@ async function testAI() {
   }
 }
 
-// ── Keywords ───────────────────────────────────────────────────────
-function renderKeywords() {
-  const list = document.getElementById('keyword-list');
-  list.innerHTML = '';
-  (config.keywords || []).forEach((kw, i) => {
-    const tag = document.createElement('div');
-    tag.className = 'keyword-tag';
-    tag.innerHTML = `<span>${escHtml(kw)}</span><button onclick="removeKeyword(${i})" title="Remove">×</button>`;
-    list.appendChild(tag);
-  });
-}
-
-function addKeyword() {
-  const input = document.getElementById('kw-input');
-  const val = input.value.trim();
-  if (!val) return;
-  if (!config.keywords) config.keywords = [];
-  if (!config.keywords.includes(val)) {
-    config.keywords.push(val);
-    saveKeywords();
-  }
-  input.value = '';
-  renderKeywords();
-}
-
-function removeKeyword(i) {
-  config.keywords.splice(i, 1);
-  saveKeywords();
-  renderKeywords();
-}
-
-async function saveKeywords() {
-  if (!config.imap) return;
-  await fetch('/api/config', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(config)
-  });
-}
-
 // ── Analysis ───────────────────────────────────────────────────────
 async function runAnalysis() {
   if (isProcessing) return;
@@ -920,7 +867,6 @@ function escHtml(s) {
 async function init() {
   connectSSE();
   await loadConfig();
-  renderKeywords();
 
   const statusRes = await fetch('/api/status');
   const status = await statusRes.json();
