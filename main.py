@@ -1,6 +1,10 @@
 import asyncio
 import json
+import logging
 from pathlib import Path
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -162,7 +166,9 @@ async def _run_analysis():
             "result": result,
         })
     except Exception as e:
-        await _push({"type": "error", "message": str(e)})
+        logger.exception("Email analysis failed")
+        msg = str(e) or f"{type(e).__name__} (no message)"
+        await _push({"type": "error", "message": msg})
     finally:
         _is_processing = False
 
@@ -179,7 +185,9 @@ async def _run_style_analysis():
             "result": result,
         })
     except Exception as e:
-        await _push({"type": "error", "message": str(e)})
+        logger.exception("Style analysis failed")
+        msg = str(e) or f"{type(e).__name__} (no message)"
+        await _push({"type": "error", "message": msg})
     finally:
         _is_processing = False
 

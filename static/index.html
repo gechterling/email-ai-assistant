@@ -225,7 +225,7 @@
   .keyword-input-row input { flex: 1; }
 
   /* Log */
-  #log {
+  #log, .log-entry-container {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -552,7 +552,7 @@
         <button class="btn" id="style-analyze-btn" onclick="runStyleAnalysis()">&#128200; Analyze My Sent Emails</button>
       </div>
 
-      <div id="style-log" style="display:none;margin-bottom:16px"></div>
+      <div id="style-log" style="display:none;margin-bottom:16px" class="log-entry-container"></div>
 
       <div id="style-display-section">
         <h3>Style Description</h3>
