@@ -535,7 +535,7 @@
 
       <div id="style-meta" class="meta-info" style="margin-bottom:14px"></div>
 
-      <div class="row" style="margin-bottom:16px">
+      <div class="row" style="margin-bottom:12px">
         <div>
           <label>From Date <span style="color:var(--text-dim)">(optional)</span></label>
           <input type="date" id="style-start-date">
@@ -545,8 +545,10 @@
           <input type="date" id="style-end-date">
         </div>
       </div>
+      <label>Subject Contains <span style="color:var(--text-dim)">(optional)</span></label>
+      <input type="text" id="style-subject-filter" placeholder="e.g. Christmas Lights Installation" style="margin-bottom:12px">
       <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px">
-        Leave blank to use your 100 most recent sent emails. Set a date range to analyze only emails from a specific period — useful for matching the style of a particular type of correspondence.
+        Leave all filters blank to use your 100 most recent sent emails. Combine date range and subject filter to target a specific type of correspondence.
       </p>
 
       <div class="btn-row" style="margin-top:0;margin-bottom:16px">
@@ -831,9 +833,12 @@ async function runStyleAnalysis() {
     return `${d}-${months[parseInt(m)-1]}-${y}`;
   };
 
+  const subjectFilter = document.getElementById('style-subject-filter').value.trim();
+
   const body = {
     start_date: toIMAP(startRaw),
     end_date: toIMAP(endRaw),
+    subject_filter: subjectFilter || null,
   };
 
   const res = await fetch('/api/style/analyze', {

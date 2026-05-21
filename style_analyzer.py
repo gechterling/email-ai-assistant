@@ -48,7 +48,7 @@ class StyleAnalyzer:
     def __init__(self, config_manager: ConfigManager):
         self.cfg = config_manager
 
-    async def analyze(self, queue, start_date: str = None, end_date: str = None) -> dict:
+    async def analyze(self, queue, start_date: str = None, end_date: str = None, subject_filter: str = None) -> dict:
         config = self.cfg.get_config()
 
         date_info = ""
@@ -56,10 +56,10 @@ class StyleAnalyzer:
             date_info = f" ({start_date or 'any'} → {end_date or 'any'})"
 
         await queue.put({"type": "status", "message": f"Connecting to mail server..."})
-        emails = await asyncio.to_thread(self._fetch_sent, config, start_date, end_date)
+        emails = await asyncio.to_thread(self._fetch_sent, config, start_date, end_date, subject_filter)
 
         if not emails:
-            raise RuntimeError(f"No sent emails found in the specified date range{date_info}. Try widening the range or check your Sent folder name in Settings.")
+            raise RuntimeError(f"No sent emails found matching your filters{date_info}. Try widening the date range, relaxing the subject filter, or check your Sent folder name in Settings.")
 
         await queue.put({"type": "status", "message": f"Found {len(emails)} sent emails{date_info}. Selecting samples..."})
 
@@ -91,9 +91,9 @@ class StyleAnalyzer:
 
         return {"emails_analyzed": len(emails), "samples_used": len(samples)}
 
-    def _fetch_sent(self, config: dict, start_date: str = None, end_date: str = None) -> List[Dict]:
+    def _fetch_sent(self, config: dict, start_date: str = None, end_date: str = None, subject_filter: str = None) -> List[Dict]:
         with IMAPClient(config) as client:
-            return client.get_sent_emails(max_count=100, start_date=start_date, end_date=end_date)
+            return client.get_sent_emails(max_count=100, start_date=start_date, end_date=end_date, subject_filter=subject_filter)
 
     def _select_samples(self, emails: List[Dict], n: int = 25) -> List[Dict]:
         if len(emails) <= n:
