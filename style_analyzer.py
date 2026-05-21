@@ -73,7 +73,7 @@ class StyleAnalyzer:
         style_description = await ai.generate(
             "You are an expert writing analyst. Be thorough and specific.",
             prompt,
-            timeout=900.0,  # 15 minutes — style analysis is a large one-time operation
+            timeout=2700.0,  # 45 minutes — large one-time operation on slower hardware
         )
 
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(style_description=style_description)
