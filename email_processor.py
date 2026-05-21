@@ -5,7 +5,7 @@ from typing import List, Dict
 from config_manager import ConfigManager
 from imap_client import IMAPClient
 from ai_client import AIClient
-from utils import strip_quoted_text
+from utils import strip_quoted_text, strip_pii
 
 
 EMAIL_USER_PROMPT = """Write a reply to the following email on behalf of the user.
@@ -87,7 +87,7 @@ class EmailProcessor:
 
             try:
                 first_name = _extract_first_name(em["from"])
-                clean_body = strip_quoted_text(em["body"])[:3000]
+                clean_body = strip_pii(strip_quoted_text(em["body"])[:3000])
                 user_msg = EMAIL_USER_PROMPT.format(
                     first_name=first_name,
                     sender=em["from"],

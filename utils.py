@@ -1,5 +1,25 @@
 import re
 
+_PHONE_RE = re.compile(
+    r'\b(\+?1[-.\s]?)?\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})\b'
+)
+_EMAIL_RE = re.compile(r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b')
+_ADDRESS_RE = re.compile(
+    r'\b\d{1,5}\s+[A-Za-z0-9][A-Za-z0-9\s]{1,30}'
+    r'(?:Street|St|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Road|Rd|Lane|Ln|'
+    r'Court|Ct|Way|Place|Pl|Circle|Cir|Highway|Hwy|Parkway|Pkwy)\b\.?',
+    re.IGNORECASE
+)
+
+
+def strip_pii(text: str) -> str:
+    """Replace phone numbers, email addresses, and street addresses with placeholders."""
+    text = _EMAIL_RE.sub('[email]', text)
+    text = _PHONE_RE.sub('[phone]', text)
+    text = _ADDRESS_RE.sub('[address]', text)
+    return text
+
+
 # Patterns that indicate the start of quoted/forwarded content
 _QUOTE_BREAKS = [
     re.compile(r'^>'),                                                      # > quoted lines

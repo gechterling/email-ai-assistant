@@ -195,7 +195,10 @@ class IMAPClient:
             msg["In-Reply-To"] = original["message_id"]
             msg["References"] = original["message_id"]
 
-        msg.set_content(reply_body)
+        quoted_lines = [f"> {line}" for line in original["body"].splitlines()]
+        attribution = f"On {original.get('date', '')}, {original['from']} wrote:"
+        full_body = f"{reply_body}\n\n{attribution}\n" + "\n".join(quoted_lines)
+        msg.set_content(full_body)
 
         date_time = imaplib.Time2Internaldate(time.time())
         self.conn.append(drafts_folder, "(\\Draft)", date_time, msg.as_bytes())
