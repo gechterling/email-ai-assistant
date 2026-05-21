@@ -1,4 +1,5 @@
 import asyncio
+from email.utils import parseaddr
 from typing import List, Dict
 
 from config_manager import ConfigManager
@@ -8,6 +9,7 @@ from ai_client import AIClient
 
 EMAIL_USER_PROMPT = """Write a reply to the following email on behalf of the user.
 
+SENDER'S FIRST NAME: {first_name}
 FROM: {sender}
 SUBJECT: {subject}
 DATE: {date}
@@ -15,7 +17,15 @@ DATE: {date}
 EMAIL BODY:
 {body}
 
-Write the reply now:"""
+Use {first_name} as the greeting name if you include one. Write the reply now:"""
+
+
+def _extract_first_name(from_field: str) -> str:
+    name, addr = parseaddr(from_field)
+    if name:
+        return name.strip().split()[0]
+    username = addr.split("@")[0] if "@" in addr else addr
+    return username.replace(".", " ").replace("_", " ").split()[0].capitalize()
 
 
 class EmailProcessor:
@@ -72,7 +82,9 @@ class EmailProcessor:
             })
 
             try:
+                first_name = _extract_first_name(em["from"])
                 user_msg = EMAIL_USER_PROMPT.format(
+                    first_name=first_name,
                     sender=em["from"],
                     subject=em["subject"],
                     date=em["date"],
