@@ -92,6 +92,14 @@ async def get_status():
     return {"processing": _is_processing}
 
 
+@app.post("/api/clear-processed")
+async def clear_processed():
+    from config_manager import PROCESSED_FILE
+    if PROCESSED_FILE.exists():
+        PROCESSED_FILE.unlink()
+    return {"status": "cleared"}
+
+
 @app.post("/api/test-imap")
 async def test_imap():
     config = cfg.get_config()

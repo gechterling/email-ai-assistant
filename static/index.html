@@ -512,6 +512,10 @@
           <input type="checkbox" name="skip_processed" id="skip-check">
           <label for="skip-check">Skip emails already processed in a previous run</label>
         </div>
+        <div class="btn-row">
+          <button type="button" class="btn secondary" onclick="clearProcessed()">Clear Processed History</button>
+          <span id="clear-result" style="font-size:13px"></span>
+        </div>
       </div>
 
       <div class="btn-row">
@@ -746,6 +750,14 @@ function updateProviderUI(provider) {
   } else {
     document.getElementById('provider-cloud').classList.add('active');
   }
+}
+
+async function clearProcessed() {
+  await fetch('/api/clear-processed', { method: 'POST' });
+  const el = document.getElementById('clear-result');
+  el.style.color = 'var(--success)';
+  el.textContent = 'Cleared! All emails will be reprocessed on next run.';
+  setTimeout(() => el.textContent = '', 4000);
 }
 
 async function testIMAP() {
