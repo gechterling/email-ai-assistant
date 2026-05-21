@@ -28,7 +28,8 @@ DEFAULT_CONFIG = {
         "cloud_model": "claude-sonnet-4-6"
     },
     "keywords": [],
-    "max_emails_per_run": 50,
+    "days_back": 7,
+    "max_emails_per_run": 20,
     "skip_processed": True
 }
 
