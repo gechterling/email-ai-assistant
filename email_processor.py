@@ -43,8 +43,7 @@ class EmailProcessor:
         emails = await asyncio.to_thread(
             self._fetch_inbox,
             config,
-            config.get("days_back", 7),
-            config.get("max_emails_per_run", 20),
+            config.get("max_emails_per_run", 50),
         )
 
         await queue.put({"type": "status", "message": f"Found {len(emails)} recent emails. Filtering by keywords..."})
@@ -119,9 +118,9 @@ class EmailProcessor:
             "errors": errors,
         }
 
-    def _fetch_inbox(self, config: dict, days_back: int, max_count: int) -> List[Dict]:
+    def _fetch_inbox(self, config: dict, max_count: int) -> List[Dict]:
         with IMAPClient(config) as client:
-            return client.get_inbox_emails(days_back=days_back, max_count=max_count)
+            return client.get_inbox_emails(max_count=max_count)
 
     def _save_draft(self, config: dict, original: Dict, reply_body: str):
         with IMAPClient(config) as client:

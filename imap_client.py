@@ -90,13 +90,11 @@ class IMAPClient:
             return text.strip()
         return ""
 
-    def get_inbox_emails(self, days_back: int = 7, max_count: int = 50) -> List[Dict]:
+    def get_inbox_emails(self, max_count: int = 50) -> List[Dict]:
         folder = self.config.get("inbox_folder", "INBOX")
         self.conn.select(folder, readonly=True)
 
-        from datetime import datetime, timedelta
-        since = (datetime.now() - timedelta(days=days_back)).strftime("%d-%b-%Y")
-        _, ids_data = self.conn.search(None, f"SINCE {since}")
+        _, ids_data = self.conn.search(None, "ALL")
         ids = ids_data[0].split()
         if not ids:
             return []

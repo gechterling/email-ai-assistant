@@ -511,16 +511,8 @@
 
       <div class="card">
         <h2>Analysis Settings</h2>
-        <div class="row">
-          <div>
-            <label>Fetch emails from last N days</label>
-            <input type="number" name="days_back" min="1" max="90" placeholder="7">
-          </div>
-          <div>
-            <label>Max emails per run</label>
-            <input type="number" name="max_emails_per_run" min="1" max="100" placeholder="20">
-          </div>
-        </div>
+        <label>Scan last N emails in inbox</label>
+        <input type="number" name="max_emails_per_run" min="1" max="10000" placeholder="50" style="max-width:200px">
         <div class="checkbox-row">
           <input type="checkbox" name="skip_processed" id="skip-check">
           <label for="skip-check">Skip emails already processed in a previous run</label>
