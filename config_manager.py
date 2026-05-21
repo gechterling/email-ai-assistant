@@ -67,9 +67,12 @@ class ConfigManager:
 
     def get_style_profile(self) -> dict:
         if not STYLE_FILE.exists():
-            return DEFAULT_STYLE.copy()
+            return json.loads(json.dumps(DEFAULT_STYLE))
         with open(STYLE_FILE) as f:
-            return json.load(f)
+            saved = json.load(f)
+        merged = json.loads(json.dumps(DEFAULT_STYLE))
+        merged.update(saved)
+        return merged
 
     def save_style_profile(self, profile: dict):
         with open(STYLE_FILE, "w") as f:
