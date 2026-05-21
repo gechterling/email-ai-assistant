@@ -397,9 +397,14 @@
     <div class="card">
       <h2>Analyze Emails</h2>
       <div class="info-box" id="readiness-box" style="display:none"></div>
-      <button class="btn" id="analyze-btn" onclick="runAnalysis()">
-        &#9654; Analyze &amp; Draft Replies
-      </button>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn" id="analyze-btn" onclick="runAnalysis()">
+          &#9654; Analyze &amp; Draft Replies
+        </button>
+        <button class="btn danger" id="cancel-btn" onclick="cancelProcessing()" style="display:none">
+          &#9632; Cancel
+        </button>
+      </div>
 
       <div class="progress-bar-wrap" id="progress-wrap">
         <div class="progress-bar" id="progress-bar" style="width:0%"></div>
@@ -557,6 +562,7 @@
 
       <div class="btn-row" style="margin-top:0;margin-bottom:16px">
         <button class="btn" id="style-analyze-btn" onclick="runStyleAnalysis()">&#128200; Analyze My Sent Emails</button>
+        <button class="btn danger" id="style-cancel-btn" onclick="cancelProcessing()" style="display:none">&#9632; Cancel</button>
       </div>
 
       <div id="style-log" style="display:none;margin-bottom:16px" class="log-entry-container"></div>
@@ -673,11 +679,19 @@ function setProcessing(active) {
   const label = document.getElementById('status-label');
   const btn = document.getElementById('analyze-btn');
   const styleBtn = document.getElementById('style-analyze-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
+  const styleCancelBtn = document.getElementById('style-cancel-btn');
 
   dot.className = 'status-dot' + (active ? ' active' : '');
   label.textContent = active ? 'Processing...' : 'Idle';
   if (btn) btn.disabled = active;
   if (styleBtn) styleBtn.disabled = active;
+  if (cancelBtn) cancelBtn.style.display = active ? 'inline-flex' : 'none';
+  if (styleCancelBtn) styleCancelBtn.style.display = active ? 'inline-flex' : 'none';
+}
+
+async function cancelProcessing() {
+  await fetch('/api/cancel', { method: 'POST' });
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 import uvicorn
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -26,9 +26,9 @@ cfg = ConfigManager()
 processor = EmailProcessor(cfg)
 analyzer = StyleAnalyzer(cfg)
 
-# Single broadcast queue; all connected SSE clients share it via fan-out
 _subscribers: list[asyncio.Queue] = []
 _is_processing = False
+_current_task: asyncio.Task | None = None
 
 
 def _broadcast(event: dict):
@@ -92,6 +92,15 @@ async def get_status():
     return {"processing": _is_processing}
 
 
+@app.post("/api/cancel")
+async def cancel():
+    global _current_task
+    if _current_task and not _current_task.done():
+        _current_task.cancel()
+        return {"status": "cancelled"}
+    return {"status": "nothing_running"}
+
+
 @app.post("/api/clear-processed")
 async def clear_processed():
     from config_manager import PROCESSED_FILE
@@ -119,23 +128,23 @@ async def test_ai():
 
 
 @app.post("/api/analyze")
-async def analyze_emails(background_tasks: BackgroundTasks):
-    global _is_processing
+async def analyze_emails():
+    global _is_processing, _current_task
     if _is_processing:
         raise HTTPException(status_code=409, detail="Already processing")
-    background_tasks.add_task(_run_analysis)
+    _current_task = asyncio.create_task(_run_analysis())
     return {"status": "started"}
 
 
 @app.post("/api/style/analyze")
-async def analyze_style(background_tasks: BackgroundTasks, data: dict = {}):
-    global _is_processing
+async def analyze_style(data: dict = {}):
+    global _is_processing, _current_task
     if _is_processing:
         raise HTTPException(status_code=409, detail="Already processing")
     start_date = data.get("start_date") or None
     end_date = data.get("end_date") or None
     subject_filter = data.get("subject_filter") or None
-    background_tasks.add_task(_run_style_analysis, start_date, end_date, subject_filter)
+    _current_task = asyncio.create_task(_run_style_analysis(start_date, end_date, subject_filter))
     return {"status": "started"}
 
 
@@ -176,6 +185,8 @@ async def _run_analysis():
             "message": f"Done! {result['drafts_saved']} draft(s) saved, {result['errors']} error(s).",
             "result": result,
         })
+    except asyncio.CancelledError:
+        await _push({"type": "error", "message": "Cancelled."})
     except Exception as e:
         logger.exception("Email analysis failed")
         msg = str(e) or f"{type(e).__name__} (no message)"
@@ -195,6 +206,8 @@ async def _run_style_analysis(start_date: str = None, end_date: str = None, subj
             "message": f"Style analysis complete! Analyzed {result['emails_analyzed']} emails.",
             "result": result,
         })
+    except asyncio.CancelledError:
+        await _push({"type": "error", "message": "Cancelled."})
     except Exception as e:
         logger.exception("Style analysis failed")
         msg = str(e) or f"{type(e).__name__} (no message)"
@@ -209,7 +222,6 @@ def _list_folders(config: dict):
 
 
 class _AsyncBroadcastAdapter:
-    """Adapts asyncio.Queue.put interface expected by processor/analyzer to global broadcast."""
     async def put(self, event: dict):
         await _push(event)
 
