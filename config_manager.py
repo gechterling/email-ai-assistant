@@ -31,9 +31,16 @@ DEFAULT_CONFIG = {
     "skip_processed": True
 }
 
+DEFAULT_RULES = """- Never suggest, invent, or commit to any specific date or timeframe unless the customer explicitly mentioned one first.
+- If the customer mentions a specific date, acknowledge it and say you will try your best to accommodate it, but make clear you cannot guarantee it. Example: "I will do my best to have it done by [their date] but I can't make any promises."
+- If the customer mentions a general timeframe (e.g. "first week of November"), acknowledge it and express intent without committing. Example: "I will take note of that and try my best to fit you in during that first week of November."
+- Do not repeat, reference, or borrow any language from quoted or forwarded text in the email you are replying to. Respond only to what the customer actually wrote.
+- Do not invent or assume any details not stated in the customer's message."""
+
 DEFAULT_STYLE = {
     "style_description": "",
     "system_prompt": "",
+    "custom_rules": DEFAULT_RULES,
     "examples": [],
     "last_analyzed": None,
     "emails_analyzed": 0

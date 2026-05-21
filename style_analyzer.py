@@ -5,6 +5,7 @@ from typing import List, Dict
 from config_manager import ConfigManager
 from imap_client import IMAPClient
 from ai_client import AIClient
+from utils import strip_quoted_text
 
 
 ANALYSIS_PROMPT = """You are analyzing email samples to build a detailed writing style profile.
@@ -119,6 +120,8 @@ class StyleAnalyzer:
         parts = []
         for i, e in enumerate(emails, 1):
             subject = e.get("subject", "")
-            body = e["body"][:2000].strip()
+            body = strip_quoted_text(e["body"])[:2000].strip()
+            if not body:
+                continue
             parts.append(f"--- Email {i} (Subject: {subject}) ---\n{body}")
         return "\n\n".join(parts)

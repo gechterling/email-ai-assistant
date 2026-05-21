@@ -5,6 +5,7 @@ from typing import List, Dict
 from config_manager import ConfigManager
 from imap_client import IMAPClient
 from ai_client import AIClient
+from utils import strip_quoted_text
 
 
 EMAIL_USER_PROMPT = """Write a reply to the following email on behalf of the user.
@@ -14,7 +15,7 @@ FROM: {sender}
 SUBJECT: {subject}
 DATE: {date}
 
-EMAIL BODY:
+CUSTOMER'S MESSAGE (quoted/forwarded content already removed):
 {body}
 
 Use {first_name} as the greeting name if you include one. Write the reply now:"""
@@ -68,7 +69,10 @@ class EmailProcessor:
         await queue.put({"type": "status", "message": f"Generating AI replies for {len(new_emails)} email(s)..."})
 
         ai = AIClient(config)
+        custom_rules = style.get("custom_rules", "").strip()
         system_prompt = style["system_prompt"]
+        if custom_rules:
+            system_prompt += f"\n\nADDITIONAL RULES:\n{custom_rules}"
         drafts_saved = 0
         errors = 0
 
@@ -83,12 +87,13 @@ class EmailProcessor:
 
             try:
                 first_name = _extract_first_name(em["from"])
+                clean_body = strip_quoted_text(em["body"])[:3000]
                 user_msg = EMAIL_USER_PROMPT.format(
                     first_name=first_name,
                     sender=em["from"],
                     subject=em["subject"],
                     date=em["date"],
-                    body=em["body"][:3000],
+                    body=clean_body,
                 )
                 reply = await ai.generate(system_prompt, user_msg)
 

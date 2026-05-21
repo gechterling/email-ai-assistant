@@ -573,6 +573,14 @@
           <textarea id="system-prompt-edit" rows="10" placeholder="System prompt will appear here after analysis..."></textarea>
         </div>
 
+        <div style="margin-top:16px">
+          <h3>Response Rules</h3>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
+            These rules are injected into every reply prompt. Edit them to control AI behavior — dates, tone, what to avoid, etc.
+          </p>
+          <textarea id="custom-rules-edit" rows="10"></textarea>
+        </div>
+
         <div class="btn-row">
           <button class="btn secondary" onclick="saveStyle()">Save Changes</button>
           <span id="style-save-result" style="font-size:13px;color:var(--success)"></span>
@@ -820,6 +828,7 @@ async function loadStyle() {
 
   desc.textContent = style.style_description || 'No style profile yet. Click "Analyze My Sent Emails" above.';
   prompt.value = style.system_prompt || '';
+  document.getElementById('custom-rules-edit').value = style.custom_rules || '';
 
   if (style.last_analyzed) {
     const date = new Date(style.last_analyzed).toLocaleString();
@@ -866,6 +875,7 @@ async function runStyleAnalysis() {
 
 async function saveStyle() {
   style.system_prompt = document.getElementById('system-prompt-edit').value;
+  style.custom_rules = document.getElementById('custom-rules-edit').value;
   await fetch('/api/style', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
