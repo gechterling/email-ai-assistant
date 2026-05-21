@@ -1,11 +1,27 @@
 import asyncio
+import re
 from email.utils import parseaddr
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 
 from config_manager import ConfigManager
 from imap_client import IMAPClient
 from ai_client import AIClient
 from utils import strip_quoted_text, strip_pii
+
+_OCTOBER_RE = re.compile(r'\boctober\b', re.IGNORECASE)
+_FLEXIBLE_RE = re.compile(
+    r'\b(anytime|no rush|whenever|flexible|no hurry|no preference|'
+    r'whatever works|whenever works|whenever you.re available|doesn.t matter)\b',
+    re.IGNORECASE
+)
+
+
+def _detect_priority(body: str) -> Tuple[Optional[str], bool]:
+    if _OCTOBER_RE.search(body):
+        return "[PRIORITY: October requested]", True
+    if _FLEXIBLE_RE.search(body):
+        return "[FLEXIBLE: No specific timeframe]", True
+    return None, False
 
 
 EMAIL_USER_PROMPT = """Write a reply to the following email on behalf of the user.
@@ -88,6 +104,7 @@ class EmailProcessor:
             try:
                 first_name = _extract_first_name(em["from"])
                 clean_body = strip_pii(strip_quoted_text(em["body"])[:3000])
+                priority_note, flagged = _detect_priority(em["body"])
                 user_msg = EMAIL_USER_PROMPT.format(
                     first_name=first_name,
                     sender=em["from"],
@@ -97,7 +114,7 @@ class EmailProcessor:
                 )
                 reply = await ai.generate(system_prompt, user_msg)
 
-                await asyncio.to_thread(self._save_draft, config, em, reply)
+                await asyncio.to_thread(self._save_draft, config, em, reply, flagged, priority_note)
                 self.cfg.mark_processed(em["message_id"])
                 self.cfg.add_history_entry({
                     "subject": em["subject"],
@@ -131,7 +148,7 @@ class EmailProcessor:
         with IMAPClient(config) as client:
             return client.get_inbox_emails(days_back=days_back, max_count=max_count)
 
-    def _save_draft(self, config: dict, original: Dict, reply_body: str):
+    def _save_draft(self, config: dict, original: Dict, reply_body: str, flagged: bool = False, priority_note: str = None):
         with IMAPClient(config) as client:
-            client.save_draft(original, reply_body)
+            client.save_draft(original, reply_body, flagged=flagged, priority_note=priority_note)
 

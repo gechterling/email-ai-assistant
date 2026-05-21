@@ -173,7 +173,7 @@ class IMAPClient:
 
         return emails
 
-    def save_draft(self, original: Dict, reply_body: str) -> bool:
+    def save_draft(self, original: Dict, reply_body: str, flagged: bool = False, priority_note: str = None) -> bool:
         """
         Saves reply_body as an IMAP draft. Uses APPEND only — SMTP is never called.
         The message cannot send itself; only the user can send it from their mail client.
@@ -197,9 +197,11 @@ class IMAPClient:
 
         quoted_lines = [f"> {line}" for line in original["body"].splitlines()]
         attribution = f"On {original.get('date', '')}, {original['from']} wrote:"
-        full_body = f"{reply_body}\n\n{attribution}\n" + "\n".join(quoted_lines)
+        body = f"{priority_note}\n\n{reply_body}" if priority_note else reply_body
+        full_body = f"{body}\n\n{attribution}\n" + "\n".join(quoted_lines)
         msg.set_content(full_body)
 
         date_time = imaplib.Time2Internaldate(time.time())
-        self.conn.append(drafts_folder, "(\\Draft)", date_time, msg.as_bytes())
+        imap_flags = "(\\Draft \\Flagged)" if flagged else "(\\Draft)"
+        self.conn.append(drafts_folder, imap_flags, date_time, msg.as_bytes())
         return True
