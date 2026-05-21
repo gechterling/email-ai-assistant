@@ -127,7 +127,7 @@ class IMAPClient:
 
         return emails
 
-    def get_sent_emails(self, max_count: int = 100) -> List[Dict]:
+    def get_sent_emails(self, max_count: int = 100, start_date: str = None, end_date: str = None) -> List[Dict]:
         sent_folder = self.config.get("sent_folder", "Sent")
         candidates = [sent_folder, "Sent", "Sent Items", "Sent Messages", "[Gmail]/Sent Mail"]
         selected = None
@@ -142,7 +142,14 @@ class IMAPClient:
         if not selected:
             return []
 
-        _, ids_data = self.conn.search(None, "ALL")
+        criteria = []
+        if start_date:
+            criteria.append(f"SINCE {start_date}")
+        if end_date:
+            criteria.append(f"BEFORE {end_date}")
+        search_arg = " ".join(criteria) if criteria else "ALL"
+
+        _, ids_data = self.conn.search(None, search_arg)
         ids = ids_data[0].split()
         if not ids:
             return []

@@ -120,11 +120,13 @@ async def analyze_emails(background_tasks: BackgroundTasks):
 
 
 @app.post("/api/style/analyze")
-async def analyze_style(background_tasks: BackgroundTasks):
+async def analyze_style(background_tasks: BackgroundTasks, data: dict = {}):
     global _is_processing
     if _is_processing:
         raise HTTPException(status_code=409, detail="Already processing")
-    background_tasks.add_task(_run_style_analysis)
+    start_date = data.get("start_date") or None
+    end_date = data.get("end_date") or None
+    background_tasks.add_task(_run_style_analysis, start_date, end_date)
     return {"status": "started"}
 
 
@@ -173,12 +175,12 @@ async def _run_analysis():
         _is_processing = False
 
 
-async def _run_style_analysis():
+async def _run_style_analysis(start_date: str = None, end_date: str = None):
     global _is_processing
     _is_processing = True
     queue = _AsyncBroadcastAdapter()
     try:
-        result = await analyzer.analyze(queue)
+        result = await analyzer.analyze(queue, start_date=start_date, end_date=end_date)
         await _push({
             "type": "done",
             "message": f"Style analysis complete! Analyzed {result['emails_analyzed']} emails.",

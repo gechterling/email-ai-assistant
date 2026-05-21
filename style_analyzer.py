@@ -48,16 +48,20 @@ class StyleAnalyzer:
     def __init__(self, config_manager: ConfigManager):
         self.cfg = config_manager
 
-    async def analyze(self, queue) -> dict:
+    async def analyze(self, queue, start_date: str = None, end_date: str = None) -> dict:
         config = self.cfg.get_config()
 
-        await queue.put({"type": "status", "message": "Connecting to mail server..."})
-        emails = await asyncio.to_thread(self._fetch_sent, config)
+        date_info = ""
+        if start_date or end_date:
+            date_info = f" ({start_date or 'any'} → {end_date or 'any'})"
+
+        await queue.put({"type": "status", "message": f"Connecting to mail server..."})
+        emails = await asyncio.to_thread(self._fetch_sent, config, start_date, end_date)
 
         if not emails:
-            raise RuntimeError("No sent emails found. Check your Sent folder name in Settings.")
+            raise RuntimeError(f"No sent emails found in the specified date range{date_info}. Try widening the range or check your Sent folder name in Settings.")
 
-        await queue.put({"type": "status", "message": f"Found {len(emails)} sent emails. Selecting samples..."})
+        await queue.put({"type": "status", "message": f"Found {len(emails)} sent emails{date_info}. Selecting samples..."})
 
         samples = self._select_samples(emails, n=100)
         formatted = self._format_samples(samples)
@@ -87,9 +91,9 @@ class StyleAnalyzer:
 
         return {"emails_analyzed": len(emails), "samples_used": len(samples)}
 
-    def _fetch_sent(self, config: dict) -> List[Dict]:
+    def _fetch_sent(self, config: dict, start_date: str = None, end_date: str = None) -> List[Dict]:
         with IMAPClient(config) as client:
-            return client.get_sent_emails(max_count=100)
+            return client.get_sent_emails(max_count=100, start_date=start_date, end_date=end_date)
 
     def _select_samples(self, emails: List[Dict], n: int = 25) -> List[Dict]:
         if len(emails) <= n:
