@@ -7,7 +7,7 @@ class AIClient:
     def __init__(self, config: dict):
         self.config = config["ai"]
 
-    async def generate(self, system_prompt: str, user_message: str, timeout: float = 600.0) -> str:
+    async def generate(self, system_prompt: str, user_message: str, timeout: float = 1800.0) -> str:
         provider = self.config.get("provider", "ollama")
         if provider == "ollama":
             return await self._ollama(system_prompt, user_message, timeout)
@@ -36,7 +36,7 @@ class AIClient:
             resp.raise_for_status()
             return resp.json()["message"]["content"].strip()
 
-    async def stream(self, system_prompt: str, user_message: str, timeout: float = 600.0) -> AsyncGenerator[str, None]:
+    async def stream(self, system_prompt: str, user_message: str, timeout: float = 1800.0) -> AsyncGenerator[str, None]:
         provider = self.config.get("provider", "ollama")
         if provider == "ollama":
             async for chunk in self._ollama_stream(system_prompt, user_message, timeout):
