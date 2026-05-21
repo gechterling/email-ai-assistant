@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email AI Assistant</title>
+<style>
+  :root {
+    --bg: #1a1b1e;
+    --surface: #25262b;
+    --surface2: #2c2e33;
+    --border: #373a40;
+    --text: #c1c2c5;
+    --text-dim: #868e96;
+    --accent: #4dabf7;
+    --accent-hover: #74c0fc;
+    --success: #51cf66;
+    --warning: #fcc419;
+    --error: #ff6b6b;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    flex: 1;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background 0.3s;
+  }
+
+  .status-dot.active { background: var(--success); animation: pulse 1.5s infinite; }
+  .status-dot.error { background: var(--error); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  #status-label { font-size: 12px; color: var(--text-dim); }
+
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 24px;
+    gap: 4px;
+  }
+
+  nav button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+
+  nav button:hover { color: var(--text); }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    margin-top: 20px;
+  }
+
+  .card h3:first-of-type { margin-top: 0; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+
+  label:first-of-type { margin-top: 0; }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="password"],
+  input[type="url"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+
+  textarea { resize: vertical; min-height: 120px; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  button.btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  button.btn:hover { background: var(--accent-hover); }
+  button.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  button.btn.secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  button.btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  button.btn.danger {
+    background: var(--error);
+    color: #fff;
+  }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+
+  /* Keywords */
+  .keyword-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; min-height: 36px; }
+
+  .keyword-tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .keyword-tag button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .keyword-tag button:hover { color: var(--error); }
+
+  .keyword-input-row { display: flex; gap: 8px; }
+  .keyword-input-row input { flex: 1; }
+
+  /* Log */
+  #log {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 13px;
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .log-entry { padding: 2px 0; }
+  .log-entry.status { color: var(--text-dim); }
+  .log-entry.success { color: var(--success); }
+  .log-entry.error { color: var(--error); }
+  .log-entry.progress { color: var(--accent); }
+  .log-entry.done { color: var(--warning); font-weight: bold; }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: var(--bg);
+    border-radius: 4px;
+    height: 6px;
+    margin: 12px 0;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-bar-wrap.visible { display: block; }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s;
+    border-radius: 4px;
+  }
+
+  /* History */
+  .history-item {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .history-item .meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .history-item .subject {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .history-item .preview {
+    font-size: 13px;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    max-height: 80px;
+    overflow: hidden;
+  }
+
+  .badge {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge.ok { background: #1a3a1a; color: var(--success); }
+  .badge.err { background: #3a1a1a; color: var(--error); }
+
+  /* Style tab */
+  #style-description-display {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    color: var(--text);
+  }
+
+  .info-box {
+    background: #1a2a3a;
+    border: 1px solid #2a4a6a;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #74c0fc;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .info-box.warn {
+    background: #2a2000;
+    border-color: #5a4000;
+    color: var(--warning);
+  }
+
+  /* Checkbox */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+  }
+
+  .checkbox-row label {
+    margin: 0;
+  }
+
+  /* Provider toggle */
+  .provider-section { display: none; }
+  .provider-section.active { display: block; }
+
+  .meta-info {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  #analyze-btn {
+    font-size: 16px;
+    padding: 12px 28px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Email AI Assistant</h1>
+  <div class="status-dot" id="dot"></div>
+  <span id="status-label">Idle</span>
+</header>
+
+<nav>
+  <button class="active" onclick="switchTab('dashboard')">Dashboard</button>
+  <button onclick="switchTab('settings')">Settings</button>
+  <button onclick="switchTab('style')">Writing Style</button>
+  <button onclick="switchTab('history')">History</button>
+</nav>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <div class="tab active" id="tab-dashboard">
+
+    <div class="card">
+      <h2>Keywords</h2>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">
+        Emails containing any of these words or phrases (in subject or body) will be processed.
+        Leave empty to process all recent emails.
+      </p>
+      <div class="keyword-list" id="keyword-list"></div>
+      <div class="keyword-input-row">
+        <input type="text" id="kw-input" placeholder="Add a keyword or phrase..." onkeydown="if(event.key==='Enter')addKeyword()">
+        <button class="btn secondary" onclick="addKeyword()">Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Analyze Emails</h2>
+      <div class="info-box" id="readiness-box" style="display:none"></div>
+      <button class="btn" id="analyze-btn" onclick="runAnalysis()">
+        &#9654; Analyze &amp; Draft Replies
+      </button>
+
+      <div class="progress-bar-wrap" id="progress-wrap">
+        <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+      </div>
+
+      <div id="log" style="margin-top:16px;display:none"></div>
+    </div>
+
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="tab" id="tab-settings">
+    <form id="settings-form">
+
+      <div class="card">
+        <h2>Email Account (IMAP)</h2>
+
+        <div class="info-box">
+          <strong>Gmail users:</strong> Enable IMAP in Gmail settings, use an App Password (not your regular password),
+          and set Drafts folder to <code>[Gmail]/Drafts</code> and Sent folder to <code>[Gmail]/Sent Mail</code>.
+        </div>
+
+        <div class="row">
+          <div>
+            <label>IMAP Host</label>
+            <input type="text" name="imap.host" placeholder="imap.gmail.com">
+          </div>
+          <div>
+            <label>Port</label>
+            <input type="number" name="imap.port" placeholder="993">
+          </div>
+        </div>
+
+        <label>Email Address / Username</label>
+        <input type="text" name="imap.username" placeholder="you@example.com">
+
+        <label>Password (App Password recommended)</label>
+        <input type="password" name="imap.password" placeholder="••••••••">
+
+        <div class="checkbox-row">
+          <input type="checkbox" name="imap.ssl" id="ssl-check">
+          <label for="ssl-check">Use SSL (port 993)</label>
+        </div>
+
+        <div class="row3" style="margin-top:14px">
+          <div>
+            <label>Inbox Folder</label>
+            <input type="text" name="imap.inbox_folder" placeholder="INBOX">
+          </div>
+          <div>
+            <label>Drafts Folder</label>
+            <input type="text" name="imap.drafts_folder" placeholder="Drafts">
+          </div>
+          <div>
+            <label>Sent Folder</label>
+            <input type="text" name="imap.sent_folder" placeholder="Sent">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn secondary" onclick="testIMAP()">Test Connection</button>
+          <span id="imap-test-result" style="font-size:13px"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>AI Provider</h2>
+
+        <label>Provider</label>
+        <select name="ai.provider" onchange="updateProviderUI(this.value)">
+          <option value="ollama">Ollama (local)</option>
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI (GPT)</option>
+        </select>
+
+        <div class="provider-section active" id="provider-ollama">
+          <label>Ollama URL</label>
+          <input type="url" name="ai.ollama_url" placeholder="http://localhost:11434">
+          <label>Model</label>
+          <input type="text" name="ai.model" placeholder="qwen2.5:7b">
+          <p class="meta-info">Recommended: qwen2.5:7b &nbsp;|&nbsp; Pull with: <code>ollama pull qwen2.5:7b</code></p>
+        </div>
+
+        <div class="provider-section" id="provider-cloud">
+          <label>API Key</label>
+          <input type="password" name="ai.cloud_api_key" placeholder="sk-...">
+          <label>Model</label>
+          <input type="text" name="ai.cloud_model" placeholder="claude-sonnet-4-6 or gpt-4o">
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn secondary" onclick="testAI()">Test AI Connection</button>
+          <span id="ai-test-result" style="font-size:13px"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Analysis Settings</h2>
+        <div class="row">
+          <div>
+            <label>Fetch emails from last N days</label>
+            <input type="number" name="days_back" min="1" max="90" placeholder="7">
+          </div>
+          <div>
+            <label>Max emails per run</label>
+            <input type="number" name="max_emails_per_run" min="1" max="100" placeholder="20">
+          </div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" name="skip_processed" id="skip-check">
+          <label for="skip-check">Skip emails already processed in a previous run</label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="submit" class="btn">Save Settings</button>
+        <span id="save-result" style="font-size:13px;color:var(--success)"></span>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- WRITING STYLE -->
+  <div class="tab" id="tab-style">
+    <div class="card">
+      <h2>Writing Style Profile</h2>
+
+      <div class="info-box">
+        Your writing style is learned by analyzing emails you have already sent. Click "Analyze My Sent Emails"
+        and the AI will read your sent folder and build a detailed style profile that all future replies will follow.
+        You can review and edit the result below.
+      </div>
+
+      <div id="style-meta" class="meta-info" style="margin-bottom:14px"></div>
+
+      <div class="btn-row" style="margin-top:0;margin-bottom:16px">
+        <button class="btn" id="style-analyze-btn" onclick="runStyleAnalysis()">&#128200; Analyze My Sent Emails</button>
+      </div>
+
+      <div id="style-log" style="display:none;margin-bottom:16px"></div>
+
+      <div id="style-display-section">
+        <h3>Style Description</h3>
+        <div id="style-description-display">No style profile yet. Click "Analyze My Sent Emails" above.</div>
+
+        <div style="margin-top:16px">
+          <h3>Edit System Prompt (Advanced)</h3>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
+            This is the exact prompt sent to the AI before every email reply. You can tweak it directly.
+          </p>
+          <textarea id="system-prompt-edit" rows="10" placeholder="System prompt will appear here after analysis..."></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn secondary" onclick="saveStyle()">Save Changes</button>
+          <span id="style-save-result" style="font-size:13px;color:var(--success)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="tab" id="tab-history">
+    <div class="card">
+      <h2>Processing History</h2>
+      <div class="btn-row" style="margin-top:0;margin-bottom:16px">
+        <button class="btn secondary" onclick="loadHistory()">&#8635; Refresh</button>
+      </div>
+      <div id="history-list"><p style="color:var(--text-dim)">No history yet.</p></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let config = {};
+let style = {};
+let isProcessing = false;
+
+// ── SSE ────────────────────────────────────────────────────────────
+let sse = null;
+function connectSSE() {
+  sse = new EventSource('/api/stream');
+  sse.onmessage = (e) => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === 'heartbeat') return;
+    handleEvent(ev);
+  };
+  sse.onerror = () => {
+    setTimeout(connectSSE, 3000);
+  };
+}
+
+function handleEvent(ev) {
+  const type = ev.type;
+
+  if (type === 'done' || type === 'error') {
+    setProcessing(false);
+    if (type === 'done') loadHistory();
+  } else {
+    setProcessing(true);
+  }
+
+  // Dashboard log
+  appendLog('log', ev);
+
+  // Style log
+  const isStyleEvent = currentTab === 'style';
+  if (isStyleEvent || type === 'done' || type === 'error') {
+    appendLog('style-log', ev);
+  }
+
+  // Progress bar
+  if (type === 'progress' && ev.total) {
+    const pct = (ev.current / ev.total) * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-wrap').classList.add('visible');
+  }
+
+  if (type === 'done') {
+    document.getElementById('progress-wrap').classList.remove('visible');
+    document.getElementById('progress-bar').style.width = '0%';
+    if (isStyleEvent) loadStyle();
+  }
+}
+
+function appendLog(containerId, ev) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.style.display = 'flex';
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${ev.type}`;
+  const ts = new Date().toLocaleTimeString();
+  entry.textContent = `[${ts}] ${ev.message || ''}`;
+  container.appendChild(entry);
+  container.scrollTop = container.scrollHeight;
+}
+
+function setProcessing(active) {
+  isProcessing = active;
+  const dot = document.getElementById('dot');
+  const label = document.getElementById('status-label');
+  const btn = document.getElementById('analyze-btn');
+  const styleBtn = document.getElementById('style-analyze-btn');
+
+  dot.className = 'status-dot' + (active ? ' active' : '');
+  label.textContent = active ? 'Processing...' : 'Idle';
+  if (btn) btn.disabled = active;
+  if (styleBtn) styleBtn.disabled = active;
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────
+let currentTab = 'dashboard';
+
+function switchTab(name) {
+  currentTab = name;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'history') loadHistory();
+  if (name === 'style') loadStyle();
+  if (name === 'settings') loadSettings();
+}
+
+// ── Config / Settings ──────────────────────────────────────────────
+async function loadConfig() {
+  const res = await fetch('/api/config');
+  config = await res.json();
+  return config;
+}
+
+async function loadSettings() {
+  await loadConfig();
+  const form = document.getElementById('settings-form');
+  setFormValues(form, config);
+  updateProviderUI(config.ai?.provider || 'ollama');
+}
+
+function setFormValues(form, obj, prefix = '') {
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      setFormValues(form, value, fullKey);
+    } else {
+      const el = form.elements[fullKey];
+      if (!el) continue;
+      if (el.type === 'checkbox') el.checked = !!value;
+      else el.value = value ?? '';
+    }
+  }
+}
+
+function getFormValues(form) {
+  const result = {};
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    const keys = el.name.split('.');
+    let obj = result;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!obj[keys[i]]) obj[keys[i]] = {};
+      obj = obj[keys[i]];
+    }
+    const last = keys[keys.length - 1];
+    if (el.type === 'checkbox') obj[last] = el.checked;
+    else if (el.type === 'number') obj[last] = Number(el.value);
+    else obj[last] = el.value;
+  }
+  return result;
+}
+
+document.getElementById('settings-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = getFormValues(e.target);
+  data.keywords = config.keywords || [];
+  await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  config = data;
+  const el = document.getElementById('save-result');
+  el.textContent = 'Saved!';
+  setTimeout(() => el.textContent = '', 2000);
+});
+
+function updateProviderUI(provider) {
+  document.querySelectorAll('.provider-section').forEach(s => s.classList.remove('active'));
+  if (provider === 'ollama') {
+    document.getElementById('provider-ollama').classList.add('active');
+  } else {
+    document.getElementById('provider-cloud').classList.add('active');
+  }
+}
+
+async function testIMAP() {
+  const el = document.getElementById('imap-test-result');
+  el.style.color = 'var(--text-dim)';
+  el.textContent = 'Testing...';
+  const data = getFormValues(document.getElementById('settings-form'));
+  data.keywords = config.keywords || [];
+  await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  const res = await fetch('/api/test-imap', { method: 'POST' });
+  const result = await res.json();
+  if (result.ok) {
+    el.style.color = 'var(--success)';
+    el.textContent = `Connected! Found ${result.folders?.length || 0} folders.`;
+  } else {
+    el.style.color = 'var(--error)';
+    el.textContent = `Failed: ${result.error}`;
+  }
+}
+
+async function testAI() {
+  const el = document.getElementById('ai-test-result');
+  el.style.color = 'var(--text-dim)';
+  el.textContent = 'Testing...';
+  const data = getFormValues(document.getElementById('settings-form'));
+  data.keywords = config.keywords || [];
+  await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  const res = await fetch('/api/test-ai', { method: 'POST' });
+  const result = await res.json();
+  if (result.ok) {
+    el.style.color = 'var(--success)';
+    const models = result.models?.length ? ` | Models: ${result.models.slice(0,3).join(', ')}` : '';
+    el.textContent = `Connected!${models}`;
+  } else {
+    el.style.color = 'var(--error)';
+    el.textContent = `Failed: ${result.error}`;
+  }
+}
+
+// ── Keywords ───────────────────────────────────────────────────────
+function renderKeywords() {
+  const list = document.getElementById('keyword-list');
+  list.innerHTML = '';
+  (config.keywords || []).forEach((kw, i) => {
+    const tag = document.createElement('div');
+    tag.className = 'keyword-tag';
+    tag.innerHTML = `<span>${escHtml(kw)}</span><button onclick="removeKeyword(${i})" title="Remove">×</button>`;
+    list.appendChild(tag);
+  });
+}
+
+function addKeyword() {
+  const input = document.getElementById('kw-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!config.keywords) config.keywords = [];
+  if (!config.keywords.includes(val)) {
+    config.keywords.push(val);
+    saveKeywords();
+  }
+  input.value = '';
+  renderKeywords();
+}
+
+function removeKeyword(i) {
+  config.keywords.splice(i, 1);
+  saveKeywords();
+  renderKeywords();
+}
+
+async function saveKeywords() {
+  if (!config.imap) return;
+  await fetch('/api/config', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(config)
+  });
+}
+
+// ── Analysis ───────────────────────────────────────────────────────
+async function runAnalysis() {
+  if (isProcessing) return;
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('log').style.display = 'flex';
+  const res = await fetch('/api/analyze', { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json();
+    alert(err.detail || 'Could not start analysis.');
+  }
+}
+
+// ── Style ──────────────────────────────────────────────────────────
+async function loadStyle() {
+  const res = await fetch('/api/style');
+  style = await res.json();
+
+  const desc = document.getElementById('style-description-display');
+  const prompt = document.getElementById('system-prompt-edit');
+  const meta = document.getElementById('style-meta');
+
+  desc.textContent = style.style_description || 'No style profile yet. Click "Analyze My Sent Emails" above.';
+  prompt.value = style.system_prompt || '';
+
+  if (style.last_analyzed) {
+    const date = new Date(style.last_analyzed).toLocaleString();
+    meta.textContent = `Last analyzed: ${date} | Emails analyzed: ${style.emails_analyzed || 0}`;
+  } else {
+    meta.textContent = 'Not yet analyzed.';
+  }
+}
+
+async function runStyleAnalysis() {
+  if (isProcessing) return;
+  document.getElementById('style-log').innerHTML = '';
+  document.getElementById('style-log').style.display = 'flex';
+  const res = await fetch('/api/style/analyze', { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json();
+    alert(err.detail || 'Could not start style analysis.');
+  }
+}
+
+async function saveStyle() {
+  style.system_prompt = document.getElementById('system-prompt-edit').value;
+  await fetch('/api/style', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(style)
+  });
+  const el = document.getElementById('style-save-result');
+  el.textContent = 'Saved!';
+  setTimeout(() => el.textContent = '', 2000);
+}
+
+// ── History ────────────────────────────────────────────────────────
+async function loadHistory() {
+  const res = await fetch('/api/history');
+  const history = await res.json();
+  const container = document.getElementById('history-list');
+  if (!history.length) {
+    container.innerHTML = '<p style="color:var(--text-dim)">No history yet.</p>';
+    return;
+  }
+  container.innerHTML = history.map(entry => {
+    const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '';
+    const badge = entry.status === 'draft_saved'
+      ? '<span class="badge ok">Draft Saved</span>'
+      : '<span class="badge err">Error</span>';
+    const preview = entry.reply_preview
+      ? `<div class="preview">${escHtml(entry.reply_preview)}</div>`
+      : (entry.error ? `<div class="preview" style="color:var(--error)">${escHtml(entry.error)}</div>` : '');
+    return `
+      <div class="history-item">
+        <div class="meta">
+          ${badge}
+          <span>${escHtml(entry.from || '')}</span>
+          <span>${ts}</span>
+        </div>
+        <div class="subject">${escHtml(entry.subject || '(no subject)')}</div>
+        ${preview}
+      </div>`;
+  }).join('');
+}
+
+// ── Utilities ──────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+async function init() {
+  connectSSE();
+  await loadConfig();
+  renderKeywords();
+
+  const statusRes = await fetch('/api/status');
+  const status = await statusRes.json();
+  if (status.processing) setProcessing(true);
+}
+
+init();
+</script>
+</body>
+</html>

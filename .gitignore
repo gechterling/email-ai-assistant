@@ -1,0 +1,19 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Runtime data (contains credentials and personal email data)
+config.json
+style_profile.json
+history.json
+processed.json
+
+# Editor backups
+*.save
+*.swp
+*.bak
+*~
