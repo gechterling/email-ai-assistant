@@ -59,7 +59,7 @@ class StyleAnalyzer:
 
         await queue.put({"type": "status", "message": f"Found {len(emails)} sent emails. Selecting samples..."})
 
-        samples = self._select_samples(emails, n=25)
+        samples = self._select_samples(emails, n=100)
         formatted = self._format_samples(samples)
 
         await queue.put({"type": "status", "message": f"Sending {len(samples)} emails to AI for style analysis (this may take a minute)..."})
@@ -88,7 +88,7 @@ class StyleAnalyzer:
 
     def _fetch_sent(self, config: dict) -> List[Dict]:
         with IMAPClient(config) as client:
-            return client.get_sent_emails(max_count=150)
+            return client.get_sent_emails(max_count=100)
 
     def _select_samples(self, emails: List[Dict], n: int = 25) -> List[Dict]:
         if len(emails) <= n:
@@ -101,6 +101,6 @@ class StyleAnalyzer:
         parts = []
         for i, e in enumerate(emails, 1):
             subject = e.get("subject", "")
-            body = e["body"][:800].strip()
+            body = e["body"][:2000].strip()
             parts.append(f"--- Email {i} (Subject: {subject}) ---\n{body}")
         return "\n\n".join(parts)
